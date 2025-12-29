@@ -59,8 +59,9 @@ export function VolunteerOnboarding({ onComplete, onBack }: VolunteerOnboardingP
         const result = await createVolunteer(volunteerData);
 
         if (result) {
-          // Store volunteer ID in localStorage for demo
+          // Store volunteer ID and Data in localStorage for demo
           localStorage.setItem('volunteerId', result.id);
+          localStorage.setItem('volunteerData', JSON.stringify(result));
           setCurrentStep((prev) => prev + 1);
         } else {
           alert('Error saving volunteer data. Please try again.');
