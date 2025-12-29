@@ -74,27 +74,38 @@ function calculateLocationScore(
     return ((maxRadius - distance) / maxRadius) * 100;
 }
 
-// Calculate availability score (0-100)
-function calculateAvailabilityScore(status: string): number {
-    switch (status) {
-        case 'available':
-            return 100;
-        case 'busy':
-            return 30;
-        case 'offline':
-            return 0;
-        default:
-            return 0;
+// Check if volunteer is available today based on schedule
+function isAvailableToday(schedule: any): boolean {
+    if (!schedule || !schedule.days || !Array.isArray(schedule.days) || schedule.days.length === 0) {
+        return true; // Default to available if no schedule set
     }
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'short' }); // "Mon", "Tue"
+    return schedule.days.includes(today);
 }
 
-// Calculate experience score (0-100)
+// Calculate availability score (0-100) including schedule
+function calculateAvailabilityScore(status: string, schedule: any): number {
+    // Immediate status check
+    if (status === 'offline') return 0;
+    if (status === 'busy') return 20;
+
+    // Schedule check
+    const isScheduled = isAvailableToday(schedule);
+
+    if (status === 'available' && isScheduled) return 100;
+    if (status === 'available' && !isScheduled) return 50; // Available status but not scheduled day
+
+    return 0;
+}
+
+// Calculate experience score (0-100) - Enhanced
 function calculateExperienceScore(
     rating: number,
     tasksCompleted: number
 ): number {
-    const ratingScore = (rating / 5) * 60; // Max 60 points from rating
-    const experienceScore = Math.min(tasksCompleted * 2, 40); // Max 40 points from tasks
+    const ratingScore = (rating / 5) * 50; // Max 50 points from rating (increased importance)
+    // Logarithmic growth for task experience - first few tasks matter most
+    const experienceScore = Math.min((tasksCompleted / 20) * 50, 50); // Max 50 points (reached at 20 tasks)
     return ratingScore + experienceScore;
 }
 
@@ -139,7 +150,8 @@ export function matchVolunteersToRequest(
             request.skills_needed
         );
         const availabilityScore = calculateAvailabilityScore(
-            volunteer.availability_status
+            volunteer.availability_status,
+            volunteer.availability_schedule
         );
         const experienceScore = calculateExperienceScore(
             volunteer.rating,
@@ -147,13 +159,18 @@ export function matchVolunteersToRequest(
         );
 
         // Skip if skill match is too low (less than 50%)
-        if (skillMatch < 50) continue;
+        // Exception: If request requires NO skills, everyone is a candidate
+        if (request.skills_needed.length > 0 && skillMatch < 30) continue;
 
         // Calculate weighted composite score
+        // Skills: 40%
+        // Location: 25% (Proximity matters)
+        // Availability: 25% (Schedule + Status)
+        // Experience: 10%
         const compositeScore =
             skillMatch * 0.4 +
-            locationScore * 0.3 +
-            availabilityScore * 0.2 +
+            locationScore * 0.25 +
+            availabilityScore * 0.25 +
             experienceScore * 0.1;
 
         matches.push({
