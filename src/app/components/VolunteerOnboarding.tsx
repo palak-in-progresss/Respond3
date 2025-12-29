@@ -6,6 +6,7 @@ import { AvailabilitySettings } from './volunteer-onboarding/AvailabilitySetting
 import { ReviewConfirmation } from './volunteer-onboarding/ReviewConfirmation';
 import { VerificationPending } from './volunteer-onboarding/VerificationPending';
 import { createVolunteer } from '../../lib/api/volunteers';
+import { geocodeAddress } from '../../lib/geocoding';
 
 interface VolunteerOnboardingProps {
   onComplete: () => void;
@@ -37,13 +38,30 @@ export function VolunteerOnboarding({ onComplete, onBack }: VolunteerOnboardingP
     if (currentStep === 5) {
       setIsSubmitting(true);
       try {
+        const locationString = `${updatedData.personalInfo.city || ''}, ${updatedData.personalInfo.state || ''}`;
+
+        // Geocode the location
+        console.log('Geocoding volunteer location:', locationString);
+        const geoResult = await geocodeAddress(locationString);
+
+        let latitude = 19.0760; // Default Mumbai coordinates
+        let longitude = 72.8777;
+
+        if (geoResult) {
+          latitude = geoResult.latitude;
+          longitude = geoResult.longitude;
+          console.log('Geocoded volunteer to:', latitude, longitude);
+        } else {
+          console.warn('Geocoding failed for volunteer, using default coordinates');
+        }
+
         const volunteerData = {
           full_name: updatedData.personalInfo.fullName || '',
           email: updatedData.personalInfo.email || '',
           phone: updatedData.personalInfo.phone || '',
-          location: `${updatedData.personalInfo.city || ''}, ${updatedData.personalInfo.state || ''}`,
-          latitude: 19.0760, // Default Mumbai coordinates - should be geocoded in production
-          longitude: 72.8777,
+          location: locationString,
+          latitude,
+          longitude,
           skills: updatedData.skills.selectedSkills || [],
           certifications: updatedData.skills.certifications || {},
           verification_status: 'pending' as const,

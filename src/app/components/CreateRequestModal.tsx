@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { createRequest } from '../../lib/api/requests';
+import { geocodeAddress } from '../../lib/geocoding';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
-import { X } from 'lucide-react';
+import { X, MapPin } from 'lucide-react';
 
 interface CreateRequestModalProps {
     open: boolean;
@@ -45,6 +46,7 @@ export function CreateRequestModal({
     });
 
     const [submitting, setSubmitting] = useState(false);
+    const [geocoding, setGeocoding] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -57,8 +59,25 @@ export function CreateRequestModal({
         setSubmitting(true);
 
         try {
+            // Geocode the location
+            console.log('Geocoding location:', formData.location);
+            const geoResult = await geocodeAddress(formData.location);
+
+            let latitude = 19.0760; // Default Mumbai
+            let longitude = 72.8777;
+
+            if (geoResult) {
+                latitude = geoResult.latitude;
+                longitude = geoResult.longitude;
+                console.log('Geocoded to:', latitude, longitude);
+            } else {
+                console.warn('Geocoding failed, using default coordinates');
+            }
+
             const request = await createRequest({
                 ...formData,
+                latitude,
+                longitude,
                 organization_id: organizationId,
                 organization_name: organizationName,
                 status: 'open',
@@ -153,8 +172,8 @@ export function CreateRequestModal({
                                     key={skill}
                                     variant="outline"
                                     className={`cursor-pointer transition-colors ${formData.skills_needed.includes(skill)
-                                            ? 'bg-blue-500 text-white border-blue-500'
-                                            : 'bg-gray-50 hover:bg-gray-100'
+                                        ? 'bg-blue-500 text-white border-blue-500'
+                                        : 'bg-gray-50 hover:bg-gray-100'
                                         }`}
                                     onClick={() => toggleSkill(skill)}
                                 >
