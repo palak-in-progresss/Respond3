@@ -47,7 +47,7 @@ export function LiveTracking({ userType, onComplete, onClose, requestId }: LiveT
   async function loadRealData(id: string) {
     setLoading(true);
     try {
-      // 1. Fetch Request Details
+      // 1. Fetch Request Details with coordinates
       const { data: request } = await supabase
         .from('requests')
         .select('*')
@@ -58,15 +58,17 @@ export function LiveTracking({ userType, onComplete, onClose, requestId }: LiveT
         setTaskDetails({
           title: request.title,
           organization: 'Emergency Response Org',
-          destination: request.location_name || 'Specified Location',
+          destination: request.location || 'Specified Location',
           coordinatorName: 'Mission Coordinator',
           coordinatorPhone: '+91 99999 99999',
           eta: 'Calculating...',
-          status: request.status
+          status: request.status,
+          latitude: request.latitude,
+          longitude: request.longitude
         });
       }
 
-      // 2. Fetch Assigned Volunteers
+      // 2. Fetch Assigned Volunteers with coordinates
       const { data: assignments } = await supabase
         .from('assignments')
         .select(`
@@ -75,22 +77,47 @@ export function LiveTracking({ userType, onComplete, onClose, requestId }: LiveT
                     id,
                     full_name,
                     phone,
-                    photo_url
+                    photo_url,
+                    latitude,
+                    longitude
                 )
             `)
         .eq('request_id', id)
         .in('status', ['accepted', 'in_progress', 'arrived', 'completed']);
 
-      if (assignments) {
-        const mappedVolunteers = assignments.map((a: any) => ({
-          id: a.volunteers.id,
-          name: a.volunteers.full_name,
-          photo: a.volunteers.photo_url,
-          initials: (a.volunteers.full_name || 'V').substring(0, 2).toUpperCase(),
-          status: a.status,
-          eta: a.status === 'arrived' ? 'Arrived' : '10 min', // Mock ETA for now
-          distance: a.status === 'arrived' ? '0 km' : '2.5 km' // Mock distance
-        }));
+      if (assignments && request) {
+        const mappedVolunteers = assignments.map((a: any) => {
+          // Calculate distance if coordinates available
+          let distance = 0;
+          let eta = 'Calculating...';
+
+          if (a.volunteers.latitude && a.volunteers.longitude && request.latitude && request.longitude) {
+            distance = calculateDistance(
+              a.volunteers.latitude,
+              a.volunteers.longitude,
+              request.latitude,
+              request.longitude
+            );
+
+            // Calculate ETA (assuming average speed of 20 km/h in city)
+            const hours = distance / 20;
+            const minutes = Math.ceil(hours * 60);
+            eta = minutes < 60 ? `${minutes} min` : `${Math.floor(hours)}h ${minutes % 60}m`;
+          }
+
+          return {
+            id: a.volunteers.id,
+            name: a.volunteers.full_name,
+            phone: a.volunteers.phone,
+            photo: a.volunteers.photo_url,
+            initials: (a.volunteers.full_name || 'V').substring(0, 2).toUpperCase(),
+            status: a.status,
+            eta: a.status === 'arrived' ? 'Arrived' : eta,
+            distance: a.status === 'arrived' ? '0 km' : `${distance.toFixed(1)} km`,
+            latitude: a.volunteers.latitude,
+            longitude: a.volunteers.longitude
+          };
+        });
         setActiveVolunteers(mappedVolunteers);
       }
 
@@ -99,6 +126,21 @@ export function LiveTracking({ userType, onComplete, onClose, requestId }: LiveT
     } finally {
       setLoading(false);
     }
+  }
+
+  // Haversine formula to calculate distance between two coordinates
+  function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Earth's radius in km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   }
 
   const getStatusColor = (status: string) => {
@@ -220,8 +262,8 @@ export function LiveTracking({ userType, onComplete, onClose, requestId }: LiveT
               <div className="space-y-3 mb-6">
                 <Button
                   className={`w-full ${hasArrived
-                      ? 'bg-green-600 hover:bg-green-700'
-                      : 'bg-[#10B981] hover:bg-[#059669]'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-[#10B981] hover:bg-[#059669]'
                     }`}
                   onClick={() => setHasArrived(true)}
                   disabled={hasArrived}
