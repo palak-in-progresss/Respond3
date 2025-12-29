@@ -17,37 +17,29 @@ import {
   LogOut
 } from 'lucide-react';
 import { getRequests } from '../../lib/api/requests';
-import { getAssignmentsByVolunteer, createAssignment } from '../../lib/api/assignments';
+import { createAssignment } from '../../lib/api/assignments';
 import type { Database } from '../../types/database';
+import { supabase } from '../../lib/supabase';
 
 type Request = Database['public']['Tables']['requests']['Row'];
 type Assignment = Database['public']['Tables']['assignments']['Row'];
+
+// Update Assignment type to include joined request data
+type AssignmentWithRequest = Assignment & {
+  requests: {
+    title: string;
+    location_name: string;
+  }
+};
 
 interface VolunteerDashboardProps {
   onBack: () => void;
   onLogout: () => void;
 }
 
-const myTasks = [
-  {
-    id: 1,
-    title: 'Blood Donation Camp',
-    date: 'Dec 30, 2025',
-    time: '10:00 AM',
-    status: 'upcoming',
-  },
-  {
-    id: 2,
-    title: 'Vaccination Drive',
-    date: 'Jan 2, 2026',
-    time: '9:00 AM',
-    status: 'upcoming',
-  },
-];
-
 export function VolunteerDashboard({ onBack, onLogout }: VolunteerDashboardProps) {
   const [nearbyRequests, setNearbyRequests] = useState<Request[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [assignments, setAssignments] = useState<AssignmentWithRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [volunteerData, setVolunteerData] = useState<any>(null);
 
@@ -87,8 +79,22 @@ export function VolunteerDashboard({ onBack, onLogout }: VolunteerDashboardProps
       // Fetch volunteer's assignments if logged in
       const volunteerId = localStorage.getItem('volunteerId');
       if (volunteerId) {
-        const userAssignments = await getAssignmentsByVolunteer(volunteerId);
-        setAssignments(userAssignments);
+        // Custom query to get request details
+        const { data: userAssignments, error } = await supabase
+          .from('assignments')
+          .select(`
+            *,
+            requests (
+              title,
+              location_name
+            )
+          `)
+          .eq('volunteer_id', volunteerId)
+          .order('created_at', { ascending: false });
+
+        if (userAssignments) {
+          setAssignments(userAssignments as any);
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -218,15 +224,15 @@ export function VolunteerDashboard({ onBack, onLogout }: VolunteerDashboardProps
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <div className="text-3xl mb-1">24</div>
+                <div className="text-3xl mb-1">{assignments.filter(a => a.status === 'completed').length}</div>
                 <div className="text-sm text-gray-600">Tasks Completed</div>
               </div>
               <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <div className="text-3xl mb-1">156</div>
+                <div className="text-3xl mb-1">{assignments.filter(a => a.status === 'completed').length * 4}</div>
                 <div className="text-sm text-gray-600">Hours Served</div>
               </div>
               <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <div className="text-3xl mb-1">4.9</div>
+                <div className="text-3xl mb-1">5.0</div>
                 <div className="text-sm text-gray-600">Rating</div>
               </div>
             </div>
@@ -345,19 +351,26 @@ export function VolunteerDashboard({ onBack, onLogout }: VolunteerDashboardProps
               <h4 className="mb-4">My Upcoming Tasks</h4>
 
               <div className="space-y-3">
-                {myTasks.map((task) => (
-                  <div key={task.id} className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                    <div className="text-sm mb-1">{task.title}</div>
-                    <div className="flex items-center gap-2 text-xs text-gray-600">
-                      <Calendar className="w-3 h-3" />
-                      {task.date}
+                {assignments.filter(a => ['accepted', 'in_progress'].includes(a.status)).length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">No upcoming tasks</p>
+                ) : (
+                  assignments.filter(a => ['accepted', 'in_progress'].includes(a.status)).map((task) => (
+                    <div key={task.id} className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                      <div className="text-sm font-medium mb-1">{task.requests?.title || 'Untitled Task'}</div>
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <MapPin className="w-3 h-3" />
+                        {task.requests?.location_name || 'Location N/A'}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-600 mt-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(task.created_at).toLocaleDateString()}
+                        <Badge variant="outline" className="ml-auto text-[10px] h-5 bg-white">
+                          {task.status === 'in_progress' ? 'In Progress' : 'Accepted'}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-600">
-                      <Clock className="w-3 h-3" />
-                      {task.time}
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
 
               <Button variant="outline" className="w-full mt-4">
