@@ -1,11 +1,12 @@
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { 
-  MapPin, 
-  Bell, 
-  Calendar, 
-  Clock, 
+import {
+  MapPin,
+  Bell,
+  Calendar,
+  Clock,
   CheckCircle,
   AlertCircle,
   AlertTriangle,
@@ -14,49 +15,16 @@ import {
   Heart,
   ArrowLeft
 } from 'lucide-react';
+import { getRequests } from '../../lib/api/requests';
+import { getAssignmentsByVolunteer, createAssignment } from '../../lib/api/assignments';
+import type { Database } from '../../types/database';
+
+type Request = Database['public']['Tables']['requests']['Row'];
+type Assignment = Database['public']['Tables']['assignments']['Row'];
 
 interface VolunteerDashboardProps {
   onBack: () => void;
 }
-
-const nearbyRequests = [
-  {
-    id: 1,
-    title: 'Flood Relief - Doctors Needed',
-    organization: 'Kerala State Disaster Management',
-    location: 'Kochi, Kerala',
-    distance: '2.3 km',
-    urgency: 'high',
-    skillsNeeded: ['Medical', 'Doctor', 'Emergency Care'],
-    volunteers: '3/5 filled',
-    time: '2 hours ago',
-    icon: Stethoscope,
-  },
-  {
-    id: 2,
-    title: 'Medical Camp - Nurses Required',
-    organization: 'Red Cross India',
-    location: 'Mumbai, Maharashtra',
-    distance: '5.1 km',
-    urgency: 'medium',
-    skillsNeeded: ['Nursing', 'First Aid', 'Healthcare'],
-    volunteers: '7/10 filled',
-    time: '4 hours ago',
-    icon: Heart,
-  },
-  {
-    id: 3,
-    title: 'Food Distribution - Drivers Needed',
-    organization: 'Goonj NGO',
-    location: 'Delhi NCR',
-    distance: '8.7 km',
-    urgency: 'low',
-    skillsNeeded: ['Driving', 'Logistics', 'Distribution'],
-    volunteers: '12/15 filled',
-    time: '6 hours ago',
-    icon: Truck,
-  },
-];
 
 const myTasks = [
   {
@@ -76,6 +44,68 @@ const myTasks = [
 ];
 
 export function VolunteerDashboard({ onBack }: VolunteerDashboardProps) {
+  const [nearbyRequests, setNearbyRequests] = useState<Request[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function loadData() {
+    try {
+      // Fetch open requests
+      const requests = await getRequests({ status: 'open' });
+      setNearbyRequests(requests);
+
+      // Fetch volunteer's assignments if logged in
+      const volunteerId = localStorage.getItem('volunteerId');
+      if (volunteerId) {
+        const userAssignments = await getAssignmentsByVolunteer(volunteerId);
+        setAssignments(userAssignments);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleAcceptTask(requestId: string) {
+    const volunteerId = localStorage.getItem('volunteerId');
+    if (!volunteerId) {
+      alert('Please complete onboarding first');
+      return;
+    }
+
+    try {
+      const assignment = await createAssignment({
+        request_id: requestId,
+        volunteer_id: volunteerId,
+        status: 'accepted'
+      });
+
+      if (assignment) {
+        alert('Task accepted! Check your upcoming tasks.');
+        loadData(); // Refresh data
+      } else {
+        alert('Error accepting task. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error accepting task:', error);
+      alert('Error accepting task. Please try again.');
+    }
+  }
+
+  const getIconForRequest = (skills: string[]) => {
+    if (skills.some(s => s.toLowerCase().includes('medical') || s.toLowerCase().includes('doctor'))) {
+      return Stethoscope;
+    }
+    if (skills.some(s => s.toLowerCase().includes('driving') || s.toLowerCase().includes('logistics'))) {
+      return Truck;
+    }
+    return Heart;
+  };
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
       case 'high':
@@ -117,7 +147,7 @@ export function VolunteerDashboard({ onBack }: VolunteerDashboardProps) {
             </Button>
             <h2>Volunteer Dashboard</h2>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <Badge variant="outline" className="bg-[#10B981] text-white border-[#10B981]">
               <CheckCircle className="w-3 h-3 mr-1" />
@@ -163,63 +193,70 @@ export function VolunteerDashboard({ onBack }: VolunteerDashboardProps) {
                 <h3>Nearby Emergency Requests</h3>
                 <Button variant="outline" size="sm">View All</Button>
               </div>
-              
+
               <div className="space-y-4">
-                {nearbyRequests.map((request) => {
-                  const IconComponent = request.icon;
-                  return (
-                    <div
-                      key={request.id}
-                      className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-shadow"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-[#1E3A8A] to-[#3B82F6] rounded-xl flex items-center justify-center flex-shrink-0">
-                          <IconComponent className="w-6 h-6 text-white" />
-                        </div>
-                        
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <h4 className="mb-1">{request.title}</h4>
-                              <p className="text-sm text-gray-600">{request.organization}</p>
-                            </div>
-                            <Badge className={`${getUrgencyColor(request.urgency)} text-white border-0`}>
-                              {getUrgencyLabel(request.urgency)}
-                            </Badge>
+                {loading ? (
+                  <p className="text-gray-500">Loading requests...</p>
+                ) : nearbyRequests.length === 0 ? (
+                  <p className="text-gray-500">No nearby requests at the moment</p>
+                ) : (
+                  nearbyRequests.map((request) => {
+                    const IconComponent = getIconForRequest(request.skills_needed);
+                    return (
+                      <div
+                        key={request.id}
+                        className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-shadow"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 bg-gradient-to-br from-[#1E3A8A] to-[#3B82F6] rounded-xl flex items-center justify-center flex-shrink-0">
+                            <IconComponent className="w-6 h-6 text-white" />
                           </div>
-                          
-                          <div className="flex flex-wrap gap-2 mb-3">
-                            {request.skillsNeeded.map((skill) => (
-                              <Badge key={skill} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                {skill}
+
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <h4 className="mb-1">{request.title}</h4>
+                                <p className="text-sm text-gray-600">{request.organization_name}</p>
+                              </div>
+                              <Badge className={`${getUrgencyColor(request.urgency)} text-white border-0`}>
+                                {getUrgencyLabel(request.urgency)}
                               </Badge>
-                            ))}
-                          </div>
-                          
-                          <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-4 h-4" />
-                              {request.location} • {request.distance}
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {request.time}
+
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {request.skills_needed.map((skill: string) => (
+                                <Badge key={skill} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  {skill}
+                                </Badge>
+                              ))}
                             </div>
-                          </div>
-                          
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">{request.volunteers} volunteers</span>
-                            <Button 
-                              className="bg-[#10B981] hover:bg-[#059669]"
-                            >
-                              Accept Task
-                            </Button>
+
+                            <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                {request.location}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                {new Date(request.created_at).toLocaleDateString()}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-600">{request.volunteers_assigned || 0}/{request.volunteers_needed} volunteers</span>
+                              <Button
+                                className="bg-[#10B981] hover:bg-[#059669]"
+                                onClick={() => handleAcceptTask(request.id)}
+                              >
+                                Accept Task
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>
@@ -234,7 +271,7 @@ export function VolunteerDashboard({ onBack }: VolunteerDashboardProps) {
                   <Calendar className="w-4 h-4" />
                 </Button>
               </div>
-              
+
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Monday - Friday</span>
@@ -253,7 +290,7 @@ export function VolunteerDashboard({ onBack }: VolunteerDashboardProps) {
                   <span className="text-sm text-gray-600">9 AM - 6 PM</span>
                 </div>
               </div>
-              
+
               <Button variant="outline" className="w-full mt-4">
                 Update Availability
               </Button>
@@ -262,7 +299,7 @@ export function VolunteerDashboard({ onBack }: VolunteerDashboardProps) {
             {/* My Tasks */}
             <div className="bg-white rounded-xl p-6 border border-gray-200">
               <h4 className="mb-4">My Upcoming Tasks</h4>
-              
+
               <div className="space-y-3">
                 {myTasks.map((task) => (
                   <div key={task.id} className="p-3 bg-blue-50 rounded-lg border border-blue-100">
@@ -278,7 +315,7 @@ export function VolunteerDashboard({ onBack }: VolunteerDashboardProps) {
                   </div>
                 ))}
               </div>
-              
+
               <Button variant="outline" className="w-full mt-4">
                 View All Tasks
               </Button>
