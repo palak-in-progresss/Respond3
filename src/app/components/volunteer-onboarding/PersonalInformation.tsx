@@ -4,7 +4,8 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { ProgressSteps } from '../ui/progress-steps';
 import { FileUpload } from '../ui/file-upload';
-import { Camera, MapPin } from 'lucide-react';
+import { Camera, MapPin, Loader2 } from 'lucide-react';
+import { getCurrentLocation, reverseGeocode } from '../../../lib/geocoding';
 
 interface PersonalInformationProps {
   onNext: (data: any) => void;
@@ -32,6 +33,8 @@ export function PersonalInformation({ onNext, onBack }: PersonalInformationProps
     emergencyContactPhone: '',
   });
 
+  const [detectingLocation, setDetectingLocation] = useState(false);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onNext(formData);
@@ -39,6 +42,39 @@ export function PersonalInformation({ onNext, onBack }: PersonalInformationProps
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleDetectLocation = async () => {
+    setDetectingLocation(true);
+    try {
+      // Get current coordinates
+      const coords = await getCurrentLocation();
+
+      if (!coords) {
+        alert('Unable to detect location. Please enable location access in your browser.');
+        setDetectingLocation(false);
+        return;
+      }
+
+      // Reverse geocode to get address
+      const address = await reverseGeocode(coords.latitude, coords.longitude);
+
+      if (address && address.address) {
+        setFormData((prev) => ({
+          ...prev,
+          city: address.address.city || prev.city,
+          state: address.address.state || prev.state,
+        }));
+        alert('Location detected successfully!');
+      } else {
+        alert('Location detected, but unable to find city/state. Please enter manually.');
+      }
+    } catch (error) {
+      console.error('Error detecting location:', error);
+      alert('Error detecting location. Please try again or enter manually.');
+    } finally {
+      setDetectingLocation(false);
+    }
   };
 
   return (
@@ -158,9 +194,20 @@ export function PersonalInformation({ onNext, onBack }: PersonalInformationProps
                 variant="outline"
                 size="sm"
                 className="mt-3"
+                onClick={handleDetectLocation}
+                disabled={detectingLocation}
               >
-                <MapPin className="w-4 h-4 mr-2" />
-                Use Current Location
+                {detectingLocation ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Detecting...
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Use Current Location
+                  </>
+                )}
               </Button>
             </div>
 
