@@ -352,6 +352,32 @@ export function VolunteerDashboard({ onBack, onLogout }: VolunteerDashboardProps
 
           {/* Sidebar */}
           <div className="space-y-6">
+
+            {/* My Skills */}
+            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-semibold text-gray-900">My Capabilities</h4>
+                <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100">
+                  {volunteerData?.skills?.length || 0} Skills
+                </Badge>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {(!volunteerData?.skills || volunteerData.skills.length === 0) ? (
+                  <div className="text-center w-full py-2">
+                    <p className="text-sm text-gray-500 italic mb-2">No skills added yet.</p>
+                    <Button variant="outline" size="sm" className="w-full text-xs">Add Skills</Button>
+                  </div>
+                ) : (
+                  volunteerData.skills.map((skill: string) => (
+                    <Badge key={skill} className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 py-1 px-3 border-0 shadow-sm transition-all hover:scale-105 cursor-default">
+                      {skill}
+                    </Badge>
+                  ))
+                )}
+              </div>
+            </div>
+
             {/* Availability Calendar */}
             <div className="bg-white rounded-xl p-6 border border-gray-200">
               <div className="flex items-center justify-between mb-4">
