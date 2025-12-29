@@ -83,7 +83,7 @@ export function VolunteerDashboard({ onBack, onLogout }: VolunteerDashboardProps
         const volData = JSON.parse(storedData);
         const userSkills = (volData.skills || []).map((s: string) => s.toLowerCase());
 
-        if (userSkills.length > 0) {
+        if (true) {
           // Calculate match score for each request
           const scoredRequests = requests.map(req => {
             const reqSkills = (req.skills_needed || []).map((s: string) => s.toLowerCase());
