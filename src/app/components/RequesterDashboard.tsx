@@ -13,7 +13,8 @@ import {
   Plus,
   ArrowLeft,
   MoreVertical,
-  RefreshCw
+  RefreshCw,
+  Shield
 } from 'lucide-react';
 import { getRequests } from '../../lib/api/requests';
 import { getVerifiedVolunteers } from '../../lib/api/volunteers';
@@ -28,6 +29,7 @@ type Request = Database['public']['Tables']['requests']['Row'];
 interface RequesterDashboardProps {
   onBack: () => void;
   onNavigateToLiveTracking?: (requestId: string) => void;
+  onNavigateToAdmin?: () => void;
   organizationName?: string;
   organizationId?: string;
 }
@@ -35,6 +37,7 @@ interface RequesterDashboardProps {
 export function RequesterDashboard({
   onBack,
   onNavigateToLiveTracking,
+  onNavigateToAdmin,
   organizationName = 'Emergency Response Organization',
   organizationId = 'org_default'
 }: RequesterDashboardProps) {
@@ -185,6 +188,16 @@ export function RequesterDashboard({
                 onClick={() => onNavigateToLiveTracking(requests[0].id)}
               >
                 View Live Tracking
+              </Button>
+            )}
+            {onNavigateToAdmin && (
+              <Button
+                variant="outline"
+                onClick={onNavigateToAdmin}
+                className="border-blue-200 hover:bg-blue-50"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Manage Verifications</span>
               </Button>
             )}
             <Button variant="ghost" className="relative">

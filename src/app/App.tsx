@@ -6,6 +6,7 @@ import { RequesterDashboard } from './components/RequesterDashboard';
 import { VolunteerOnboarding } from './components/VolunteerOnboarding';
 import { VolunteerLogin } from './components/VolunteerLogin';
 import { LiveTracking } from './components/LiveTracking';
+import { AdminVerificationPanel } from './components/AdminVerificationPanel';
 import { runDiagnostics } from '../diagnostics';
 
 type Screen =
@@ -15,7 +16,8 @@ type Screen =
   | 'volunteer-onboarding'
   | 'volunteer-dashboard'
   | 'requester-dashboard'
-  | 'live-tracking';
+  | 'live-tracking'
+  | 'admin-verification';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
@@ -95,6 +97,7 @@ export default function App() {
               setTrackingRequestId(requestId);
               setCurrentScreen('live-tracking');
             }}
+            onNavigateToAdmin={() => setCurrentScreen('admin-verification')}
             organizationName={ORGANIZATION_CONFIG.name}
             organizationId={ORGANIZATION_CONFIG.id}
           />
@@ -106,6 +109,12 @@ export default function App() {
             requestId={trackingRequestId}
             onComplete={() => setCurrentScreen('requester-dashboard')}
             onClose={() => setCurrentScreen('requester-dashboard')}
+          />
+        );
+      case 'admin-verification':
+        return (
+          <AdminVerificationPanel
+            onBack={() => setCurrentScreen('requester-dashboard')}
           />
         );
       default:
