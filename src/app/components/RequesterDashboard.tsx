@@ -26,7 +26,7 @@ type Request = Database['public']['Tables']['requests']['Row'];
 
 interface RequesterDashboardProps {
   onBack: () => void;
-  onNavigateToLiveTracking?: () => void;
+  onNavigateToLiveTracking?: (requestId: string) => void;
   organizationName?: string;
   organizationId?: string;
 }
@@ -44,6 +44,7 @@ export function RequesterDashboard({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [showDetailView, setShowDetailView] = useState(false);
+  const [totalVolunteers, setTotalVolunteers] = useState(0);
 
   useEffect(() => {
     loadData();
@@ -57,6 +58,8 @@ export function RequesterDashboard({
 
       // For each request, run matching algorithm
       const volunteers = await getVerifiedVolunteers();
+      setTotalVolunteers(volunteers.length); // Save total count
+
       const matches = new Map<string, MatchScore[]>();
       reqs.forEach(req => {
         const topMatches = matchVolunteersToRequest(volunteers, req).slice(0, 10);
@@ -167,10 +170,10 @@ export function RequesterDashboard({
               <Plus className="w-5 h-5 mr-2" />
               New Request
             </Button>
-            {onNavigateToLiveTracking && (
+            {onNavigateToLiveTracking && requests.length > 0 && (
               <Button
                 variant="outline"
-                onClick={onNavigateToLiveTracking}
+                onClick={() => onNavigateToLiveTracking(requests[0].id)}
               >
                 View Live Tracking
               </Button>
@@ -194,43 +197,50 @@ export function RequesterDashboard({
               <span className="text-sm text-gray-600">Avg Response Time</span>
               <Clock className="w-5 h-5 text-[#10B981]" />
             </div>
-            <div className="text-3xl mb-1">4 min</div>
+            <div className="text-3xl mb-1">{requests.length > 0 ? '4 min' : '--'}</div>
             <div className="flex items-center gap-1 text-sm text-green-600">
               <TrendingUp className="w-4 h-4" />
-              <span>12% faster</span>
+              <span>Real-time</span>
             </div>
           </div>
 
           <div className="bg-white rounded-xl p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Match Rate</span>
+              <span className="text-sm text-gray-600">Request Coverage</span>
               <CheckCircle className="w-5 h-5 text-[#1E3A8A]" />
             </div>
-            <div className="text-3xl mb-1">87%</div>
+            {/* Calculate coverage: Requests with at least 1 matched volunteer */}
+            <div className="text-3xl mb-1">
+              {requests.length > 0
+                ? Math.round((Array.from(matchedVolunteers.values()).filter(m => m.length > 0).length / requests.length) * 100)
+                : 0}%
+            </div>
             <div className="flex items-center gap-1 text-sm text-green-600">
               <TrendingUp className="w-4 h-4" />
-              <span>5% increase</span>
+              <span>Match Rate</span>
             </div>
           </div>
 
           <div className="bg-white rounded-xl p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Active Volunteers</span>
+              <span className="text-sm text-gray-600">Verified Volunteers</span>
               <Users className="w-5 h-5 text-[#F59E0B]" />
             </div>
-            <div className="text-3xl mb-1">142</div>
-            <div className="text-sm text-gray-600">Across 8 requests</div>
+            <div className="text-3xl mb-1">{totalVolunteers}</div>
+            <div className="text-sm text-gray-600">Ready to respond</div>
           </div>
 
           <div className="bg-white rounded-xl p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-600">Open Requests</span>
               <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
-                3
+                {requests.length}
               </div>
             </div>
-            <div className="text-3xl mb-1">3</div>
-            <div className="text-sm text-gray-600">2 high priority</div>
+            <div className="text-3xl mb-1">{requests.length}</div>
+            <div className="text-sm text-gray-600">
+              {requests.filter(r => r.urgency === 'high').length} high priority
+            </div>
           </div>
         </div>
 

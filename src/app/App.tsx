@@ -19,6 +19,7 @@ type Screen =
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
+  const [trackingRequestId, setTrackingRequestId] = useState<string | null>(null);
 
   // Organization configuration - Change this to customize your organization
   const ORGANIZATION_CONFIG = {
@@ -90,7 +91,10 @@ export default function App() {
         return (
           <RequesterDashboard
             onBack={() => setCurrentScreen('role-selection')}
-            onNavigateToLiveTracking={() => setCurrentScreen('live-tracking')}
+            onNavigateToLiveTracking={(requestId) => {
+              setTrackingRequestId(requestId);
+              setCurrentScreen('live-tracking');
+            }}
             organizationName={ORGANIZATION_CONFIG.name}
             organizationId={ORGANIZATION_CONFIG.id}
           />
@@ -99,6 +103,7 @@ export default function App() {
         return (
           <LiveTracking
             userType="requester"
+            requestId={trackingRequestId}
             onComplete={() => setCurrentScreen('requester-dashboard')}
             onClose={() => setCurrentScreen('requester-dashboard')}
           />
