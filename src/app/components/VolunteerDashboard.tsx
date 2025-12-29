@@ -13,7 +13,8 @@ import {
   Stethoscope,
   Truck,
   Heart,
-  ArrowLeft
+  ArrowLeft,
+  LogOut
 } from 'lucide-react';
 import { getRequests } from '../../lib/api/requests';
 import { getAssignmentsByVolunteer, createAssignment } from '../../lib/api/assignments';
@@ -24,6 +25,7 @@ type Assignment = Database['public']['Tables']['assignments']['Row'];
 
 interface VolunteerDashboardProps {
   onBack: () => void;
+  onLogout: () => void;
 }
 
 const myTasks = [
@@ -43,10 +45,34 @@ const myTasks = [
   },
 ];
 
-export function VolunteerDashboard({ onBack }: VolunteerDashboardProps) {
+export function VolunteerDashboard({ onBack, onLogout }: VolunteerDashboardProps) {
   const [nearbyRequests, setNearbyRequests] = useState<Request[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [volunteerData, setVolunteerData] = useState<any>(null);
+
+  // Load volunteer data from localStorage on mount
+  useEffect(() => {
+    const storedData = localStorage.getItem('volunteerData');
+    if (storedData) {
+      try {
+        const data = JSON.parse(storedData);
+        setVolunteerData(data);
+      } catch (error) {
+        console.error('Error parsing volunteer data:', error);
+      }
+    }
+  }, []);
+
+  // Get volunteer initials for avatar
+  const getInitials = (name: string) => {
+    if (!name) return 'V';
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
 
   useEffect(() => {
     loadData();
@@ -149,20 +175,38 @@ export function VolunteerDashboard({ onBack }: VolunteerDashboardProps) {
           </div>
 
           <div className="flex items-center gap-4">
-            <Badge variant="outline" className="bg-[#10B981] text-white border-[#10B981]">
-              <CheckCircle className="w-3 h-3 mr-1" />
-              Verified
-            </Badge>
-            <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
-              Medical Professional
-            </Badge>
-            <Button variant="ghost" className="relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
+            {volunteerData?.verified && (
+              <Badge variant="outline" className="bg-[#10B981] text-white border-[#10B981] hidden sm:flex">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Verified
+              </Badge>
+            )}
+
+            <div className="h-8 w-px bg-gray-200 mx-2 hidden sm:block"></div>
+
+            <div className="flex items-center gap-3">
+              <Avatar>
+                <AvatarFallback className="bg-[#1E3A8A] text-white">
+                  {volunteerData ? getInitials(volunteerData.name) : 'V'}
+                </AvatarFallback>
+              </Avatar>
+              {volunteerData && (
+                <div className="hidden md:block text-right mr-2">
+                  <p className="text-sm font-medium leading-none">{volunteerData.name}</p>
+                  <p className="text-xs text-gray-500 mt-1">{volunteerData.phone || volunteerData.email}</p>
+                </div>
+              )}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onLogout}
+              className="text-red-600 border-red-200 hover:bg-red-50 ml-2"
+            >
+              <LogOut className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Logout</span>
             </Button>
-            <Avatar>
-              <AvatarFallback className="bg-[#1E3A8A] text-white">AK</AvatarFallback>
-            </Avatar>
           </div>
         </div>
       </header>

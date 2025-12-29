@@ -27,9 +27,16 @@ type Request = Database['public']['Tables']['requests']['Row'];
 interface RequesterDashboardProps {
   onBack: () => void;
   onNavigateToLiveTracking?: () => void;
+  organizationName?: string;
+  organizationId?: string;
 }
 
-export function RequesterDashboard({ onBack, onNavigateToLiveTracking }: RequesterDashboardProps) {
+export function RequesterDashboard({
+  onBack,
+  onNavigateToLiveTracking,
+  organizationName = 'Emergency Response Organization',
+  organizationId = 'org_default'
+}: RequesterDashboardProps) {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [matchedVolunteers, setMatchedVolunteers] = useState<Map<string, MatchScore[]>>(new Map());
@@ -148,7 +155,7 @@ export function RequesterDashboard({ onBack, onNavigateToLiveTracking }: Request
             </Button>
             <div>
               <h2>Requester Dashboard</h2>
-              <p className="text-sm text-gray-600">Kerala State Disaster Management</p>
+              <p className="text-sm text-gray-600">{organizationName}</p>
             </div>
           </div>
 
@@ -375,8 +382,8 @@ export function RequesterDashboard({ onBack, onNavigateToLiveTracking }: Request
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSuccess={() => loadData()}
-        organizationId="org_kerala_sdm"
-        organizationName="Kerala State Disaster Management"
+        organizationId={organizationId}
+        organizationName={organizationName}
       />
 
       {/* Request Detail View */}

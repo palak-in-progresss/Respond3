@@ -30,10 +30,14 @@
 - [ ] Go to http://localhost:5173
 - [ ] Click "Get Started"
 - [ ] Select "I want to volunteer"
-- [ ] Fill out onboarding form
-- [ ] Submit and check Supabase table for new volunteer
-- [ ] Go back and select "I need volunteers"
-- [ ] See the requests from seed data
+- [ ] **New:** You'll see a Login screen. Click "Complete Onboarding"
+- [ ] Fill out onboarding form (use dummy data)
+- [ ] Submit -> Redirects to **Personalized Dashboard**
+- [ ] **Test Persistence:** Refresh the page. Data stays!
+- [ ] **Test Logout:** Click "Logout" -> Back to Login
+- [ ] **Test Login:** Enter phone/email -> Back to Dashboard
+- [ ] Go back to Role Selection and select "I need volunteers"
+- [ ] See organization name "Emergency Response Organization" (Configurable!)
 
 ---
 
@@ -75,7 +79,8 @@
 1. **Problem**: Emergency response is chaotic, uncoordinated
 2. **Solution**: RESPOND matches verified volunteers with urgent needs
 3. **How**: Rule-based algorithm (skills + location + urgency)
-4. **Trust**: Progressive verification system
+4. **Trust**: **DigiLocker Integration** (Instant Govt Verification)
 5. **Scale**: PostgreSQL + Supabase = production-ready
+6. **Flexibility**: Configurable for ANY organization (NDRF, Kerala SDM, etc.)
 
 **You've got this! 🏆**

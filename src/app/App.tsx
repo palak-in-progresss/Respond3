@@ -4,12 +4,14 @@ import { RoleSelection } from './components/RoleSelection';
 import { VolunteerDashboard } from './components/VolunteerDashboard';
 import { RequesterDashboard } from './components/RequesterDashboard';
 import { VolunteerOnboarding } from './components/VolunteerOnboarding';
+import { VolunteerLogin } from './components/VolunteerLogin';
 import { LiveTracking } from './components/LiveTracking';
 import { runDiagnostics } from '../diagnostics';
 
 type Screen =
   | 'landing'
   | 'role-selection'
+  | 'volunteer-login'
   | 'volunteer-onboarding'
   | 'volunteer-dashboard'
   | 'requester-dashboard'
@@ -17,6 +19,12 @@ type Screen =
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
+
+  // Organization configuration - Change this to customize your organization
+  const ORGANIZATION_CONFIG = {
+    name: 'Emergency Response Organization',
+    id: 'org_emergency_response',
+  };
 
   // Diagnostic keyboard shortcut: Press Shift+D to run diagnostics
   useEffect(() => {
@@ -37,24 +45,54 @@ export default function App() {
       case 'role-selection':
         return (
           <RoleSelection
-            onSelectVolunteer={() => setCurrentScreen('volunteer-onboarding')}
+            onSelectVolunteer={() => {
+              // Check if volunteer is already logged in
+              const volunteerId = localStorage.getItem('volunteerId');
+              if (volunteerId) {
+                setCurrentScreen('volunteer-dashboard');
+              } else {
+                setCurrentScreen('volunteer-login');
+              }
+            }}
             onSelectRequester={() => setCurrentScreen('requester-dashboard')}
+          />
+        );
+      case 'volunteer-login':
+        return (
+          <VolunteerLogin
+            onLoginSuccess={() => setCurrentScreen('volunteer-dashboard')}
+            onBack={() => setCurrentScreen('volunteer-onboarding')}
           />
         );
       case 'volunteer-onboarding':
         return (
           <VolunteerOnboarding
             onComplete={() => setCurrentScreen('volunteer-dashboard')}
-            onBack={() => setCurrentScreen('role-selection')}
+            onBack={() => setCurrentScreen('volunteer-login')}
           />
         );
       case 'volunteer-dashboard':
-        return <VolunteerDashboard onBack={() => setCurrentScreen('role-selection')} />;
+        return (
+          <VolunteerDashboard
+            onBack={() => setCurrentScreen('role-selection')}
+            onLogout={() => {
+              // Clear session data
+              localStorage.removeItem('volunteerId');
+              localStorage.removeItem('volunteerData');
+              localStorage.removeItem('digilocker_session');
+
+              // Redirect to login screen
+              setCurrentScreen('volunteer-login');
+            }}
+          />
+        );
       case 'requester-dashboard':
         return (
           <RequesterDashboard
             onBack={() => setCurrentScreen('role-selection')}
             onNavigateToLiveTracking={() => setCurrentScreen('live-tracking')}
+            organizationName={ORGANIZATION_CONFIG.name}
+            organizationId={ORGANIZATION_CONFIG.id}
           />
         );
       case 'live-tracking':

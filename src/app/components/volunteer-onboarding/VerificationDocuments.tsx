@@ -50,6 +50,57 @@ export function VerificationDocuments({ onNext, onBack }: VerificationDocumentsP
             Upload a government-issued ID for verification. This builds trust in our community.
           </p>
 
+          {/* DigiLocker Quick Verification Option */}
+          <div className="mb-8 p-6 bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-xl">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold mb-2">✨ Instant Verification with DigiLocker</h3>
+                <p className="text-sm text-gray-700 mb-4">
+                  Skip the upload! Verify instantly using your Aadhaar through DigiLocker.
+                  <strong> No document upload needed.</strong>
+                </p>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge className="bg-green-100 text-green-700 border-green-300">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Government Verified
+                  </Badge>
+                  <Badge className="bg-blue-100 text-blue-700 border-blue-300">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    30 Seconds
+                  </Badge>
+                  <Badge className="bg-purple-100 text-purple-700 border-purple-300">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Auto-Fill Data
+                  </Badge>
+                </div>
+                <Button
+                  type="button"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => {
+                    alert('DigiLocker integration coming soon! For now, please upload documents manually.');
+                    // TODO: Implement DigiLocker login
+                    // initiateDigiLockerLogin();
+                  }}
+                >
+                  <Shield className="w-4 h-4 mr-2" />
+                  Verify with DigiLocker (Coming Soon)
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative mb-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-gray-500">or upload documents manually</span>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Security Badge */}
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
@@ -71,11 +122,10 @@ export function VerificationDocuments({ onNext, onBack }: VerificationDocumentsP
                     key={doc.value}
                     type="button"
                     onClick={() => setDocumentType(doc.value)}
-                    className={`p-4 rounded-lg border-2 text-left transition-all ${
-                      documentType === doc.value
+                    className={`p-4 rounded-lg border-2 text-left transition-all ${documentType === doc.value
                         ? 'border-[#1E3A8A] bg-blue-50'
                         : 'border-gray-300 hover:border-gray-400'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <span>{doc.label}</span>

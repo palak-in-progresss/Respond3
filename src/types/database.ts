@@ -27,6 +27,8 @@ export interface Database {
                     rating: number
                     tasks_completed: number
                     profile_image_url: string | null
+                    digilocker_id: string | null
+                    photo_url: string | null
                 }
                 Insert: {
                     id?: string
