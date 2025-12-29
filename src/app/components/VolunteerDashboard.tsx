@@ -73,11 +73,40 @@ export function VolunteerDashboard({ onBack, onLogout }: VolunteerDashboardProps
   async function loadData() {
     try {
       // Fetch open requests
-      const requests = await getRequests({ status: 'open' });
+      let requests = await getRequests({ status: 'open' });
+
+      // Filter requests based on volunteer skills
+      const volunteerId = localStorage.getItem('volunteerId');
+      const storedData = localStorage.getItem('volunteerData');
+
+      if (storedData) {
+        const volData = JSON.parse(storedData);
+        const userSkills = (volData.skills || []).map((s: string) => s.toLowerCase());
+
+        if (userSkills.length > 0) {
+          // Calculate match score for each request
+          const scoredRequests = requests.map(req => {
+            const reqSkills = (req.skills_needed || []).map((s: string) => s.toLowerCase());
+            // If request needs no specific skills, it's a match for everyone (score 1)
+            if (reqSkills.length === 0) return { ...req, matchScore: 1 };
+
+            // Count matching skills
+            const matches = reqSkills.filter((s: string) => userSkills.includes(s));
+            // Score = number of matches
+            return { ...req, matchScore: matches.length };
+          });
+
+          // Filter out requests with 0 score (unless request has no skill requirements)
+          // And sort by score descending
+          requests = scoredRequests
+            .filter(req => req.matchScore > 0)
+            .sort((a, b) => b.matchScore - a.matchScore);
+        }
+      }
+
       setNearbyRequests(requests);
 
       // Fetch volunteer's assignments if logged in
-      const volunteerId = localStorage.getItem('volunteerId');
       if (volunteerId) {
         // Custom query to get request details
         const { data: userAssignments, error } = await supabase
