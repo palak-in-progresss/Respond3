@@ -294,12 +294,22 @@ export function VolunteerDashboard({ onBack, onLogout }: VolunteerDashboardProps
 
                             <div className="flex items-center justify-between">
                               <span className="text-sm text-gray-600">{request.volunteers_assigned || 0}/{request.volunteers_needed} volunteers</span>
-                              <Button
-                                className="bg-[#10B981] hover:bg-[#059669]"
-                                onClick={() => handleAcceptTask(request.id)}
-                              >
-                                Accept Task
-                              </Button>
+                              {assignments.some(a => a.request_id === request.id) ? (
+                                <Button
+                                  variant="outline"
+                                  className="border-green-500 text-green-600 bg-green-50 cursor-default hover:bg-green-50"
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Accepted
+                                </Button>
+                              ) : (
+                                <Button
+                                  className="bg-[#10B981] hover:bg-[#059669]"
+                                  onClick={() => handleAcceptTask(request.id)}
+                                >
+                                  Accept Task
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </div>

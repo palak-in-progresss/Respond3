@@ -13,6 +13,7 @@ import {
   Plus,
   ArrowLeft,
   MoreVertical,
+  RefreshCw
 } from 'lucide-react';
 import { getRequests } from '../../lib/api/requests';
 import { getVerifiedVolunteers } from '../../lib/api/volunteers';
@@ -163,6 +164,14 @@ export function RequesterDashboard({
           </div>
 
           <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadData}
+              className="mr-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
             <Button
               className="bg-[#F59E0B] hover:bg-[#D97706]"
               onClick={() => setShowCreateModal(true)}
