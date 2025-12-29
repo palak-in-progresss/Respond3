@@ -14,6 +14,7 @@ export async function createAssignment(data: AssignmentInsert): Promise<Assignme
 
     if (error) {
         console.error('Error creating assignment:', error);
+        alert(`Database Error: ${error.message}`);
         return null;
     }
 
